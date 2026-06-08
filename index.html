@@ -835,6 +835,41 @@ input[type=month]::-webkit-calendar-picker-indicator{filter:invert(0.6);cursor:p
   </div>
 </div>
 
+<!-- ══ MODAL: Confirm Close Issue ══ -->
+<div class="overlay" id="modal-confirm-close">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--success)">✅ ยืนยันปิดปัญหา</div>
+      <button class="icon-btn" onclick="closeModal('modal-confirm-close')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">กรุณายืนยันว่าปัญหานี้ได้รับการแก้ไขเรียบร้อยแล้ว</p>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--muted);width:70px;flex-shrink:0">เครื่อง:</span>
+          <span style="font-size:13px;font-weight:700" id="confirm-close-machine">—</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--muted);width:70px;flex-shrink:0">ประเภท:</span>
+          <span style="font-size:13px;font-weight:600" id="confirm-close-type">—</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="font-size:11px;color:var(--muted);width:70px;flex-shrink:0;padding-top:2px">รายละเอียด:</span>
+          <span style="font-size:12px;color:var(--muted);line-height:1.5" id="confirm-close-desc">—</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--success)">
+        ⚠️ เมื่อยืนยันแล้ว สถานะปัญหาจะเปลี่ยนเป็น "แก้ไขแล้ว" และบันทึกลง Google Sheets
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success btn-full" id="confirm-close-btn">✅ ยืนยัน — แก้ไขปัญหาแล้ว</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-confirm-close')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════
 // GOOGLE SHEETS DATA LAYER
@@ -1373,10 +1408,24 @@ function deleteIssue(id){
 }
 function quickCloseIssue(id){
   const idx=issues.findIndex(i=>i.id===id);if(idx<0)return;
-  issues[idx].status='closed';
-  saveIssueRecord(issues[idx]);
-  renderIssuesCards();renderRecentIssues();updateBadges();renderCriticalBanner();
-  toast('ปิดปัญหาแล้ว ✅');
+  const iss=issues[idx];
+  const sev=parseSeverity(iss.severity);
+  const sevLabel=['','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
+  openConfirmCloseModal(id,iss.machineName,iss.type,sevLabel[sev]||sev,iss.desc);
+}
+function openConfirmCloseModal(id,machineName,type,sevText,desc){
+  document.getElementById('confirm-close-machine').textContent=machineName;
+  document.getElementById('confirm-close-type').textContent=`${type} (${sevText})`;
+  document.getElementById('confirm-close-desc').textContent=desc||'—';
+  document.getElementById('confirm-close-btn').onclick=function(){
+    const idx=issues.findIndex(i=>i.id===id);if(idx<0)return;
+    issues[idx].status='closed';
+    saveIssueRecord(issues[idx]);
+    closeModal('modal-confirm-close');
+    renderIssuesCards();renderRecentIssues();updateBadges();renderCriticalBanner();
+    toast('✅ ปิดปัญหาเรียบร้อยแล้ว');
+  };
+  openModal('modal-confirm-close');
 }
 function filterIssues(s,btn){
   issueFilterStatus=s;
@@ -1391,19 +1440,43 @@ function populateIssueMachineFilter(){
   sel.value=cur;
 }
 
+function parseSeverity(v){
+  // รองรับทุกรูปแบบจาก Google Sheets: "4", "4 - วิกฤต", 4, "วิกฤต", undefined, null, ""
+  if(v===null||v===undefined||v==='')return 1;
+  const s=String(v).trim();
+  // ตัวเลขตรง: "1","2","3","4"
+  const n=parseInt(s);
+  if(n>=1&&n<=4)return n;
+  // ข้อความไทย/อังกฤษ
+  const lower=s.toLowerCase();
+  if(lower.includes('วิกฤต')||lower.includes('critical')||lower.includes('4'))return 4;
+  if(lower.includes('รุนแรง')||lower.includes('severe')||lower.includes('3'))return 3;
+  if(lower.includes('ปานกลาง')||lower.includes('moderate')||lower.includes('2'))return 2;
+  if(lower.includes('เล็กน้อย')||lower.includes('minor')||lower.includes('1'))return 1;
+  return 1;
+}
+
 function renderIssueCard(i){
+  const sev=parseSeverity(i.severity);
   const sevLabel=['','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
+  const sevColor=['','#22c55e','#f59e0b','#f97316','#ef4444'];
+  const sevBg=['','rgba(34,197,94,.12)','rgba(245,158,11,.12)','rgba(249,115,22,.12)','rgba(239,68,68,.12)'];
+  const sevBorder=['','rgba(34,197,94,.3)','rgba(245,158,11,.3)','rgba(249,115,22,.3)','rgba(239,68,68,.3)'];
+  const sevIcon=['','🟢','🟡','🟠','🔴'];
   const statusBadge={open:'<span class="badge badge-danger">เปิดอยู่</span>','in-progress':'<span class="badge badge-warn">กำลังแก้</span>',closed:'<span class="badge badge-success">แก้แล้ว</span>'};
-  return`<div class="issue-card">
+  return`<div class="issue-card" style="border-left:3px solid ${sevColor[sev]}">
     <div class="issue-card-header">
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="issue-machine">${i.machineName}</div>
-        <div class="issue-type"><span class="sev-dot sev-${i.severity}"></span>${i.type} · ${sevLabel[i.severity]} · ${fmt(i.date)}</div>
+        <div class="issue-type" style="margin-top:4px">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:${sevBg[sev]};border:1px solid ${sevBorder[sev]};border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700;color:${sevColor[sev]}">${sevIcon[sev]} ระดับ ${sev} — ${sevLabel[sev]}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${i.type} · ${fmt(i.date)}</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         ${statusBadge[i.status]||''}
         <div style="display:flex;gap:4px;margin-top:2px">
-          ${i.status!=='closed'?`<button class="btn btn-success btn-sm" style="padding:4px 8px;font-size:11px" onclick="quickCloseIssue('${i.id}')">✓</button>`:''}
+          ${i.status!=='closed'?`<button class="btn btn-success btn-sm" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.18);border:1.5px solid rgba(34,197,94,.35)" onclick="quickCloseIssue('${i.id}')">✅ แก้ไขแล้ว</button>`:''}
           <button class="btn btn-secondary btn-sm" style="padding:4px 8px;font-size:11px" onclick="openIssueEditModal('${i.id}')">✏️</button>
           <button class="btn btn-danger btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteIssue('${i.id}')">🗑</button>
         </div>
@@ -1496,7 +1569,7 @@ function renderDashboard(){
 
 function renderCriticalBanner(){
   const wrap=document.getElementById('critical-banner-wrap');if(!wrap)return;
-  const criticals=issues.filter(i=>i.severity===4&&i.status!=='closed');
+  const criticals=issues.filter(i=>parseSeverity(i.severity)===4&&i.status!=='closed');
   if(!criticals.length){wrap.innerHTML='';return}
   wrap.innerHTML=`<div class="critical-banner" style="margin:0 14px 10px">
     <div class="critical-title">🚨 ปัญหาวิกฤต! ${criticals.length} รายการ</div>
@@ -1525,20 +1598,28 @@ function renderDashPendingAlert(ym){
 }
 function renderRecentIssues(){
   const el=document.getElementById('recent-issues-list');if(!el)return;
-  const open=issues.filter(i=>i.status!=='closed').sort((a,b)=>b.severity-a.severity||b.ts-a.ts).slice(0,4);
+  const open=issues.filter(i=>i.status!=='closed').sort((a,b)=>parseSeverity(b.severity)-parseSeverity(a.severity)||b.ts-a.ts).slice(0,4);
   if(!open.length){el.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">🎉</div><div class="empty-text">ไม่มีปัญหาค้างอยู่</div></div>';return}
   const sc=['','var(--success)','var(--warn)','#f97316','var(--danger)'];
-  el.innerHTML=`<div class="timeline">${open.map(i=>`
+  const sevLabel=['','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
+  const sevIcon=['','🟢','🟡','🟠','🔴'];
+  el.innerHTML=`<div class="timeline">${open.map(i=>{const sev=parseSeverity(i.severity);return`
     <div class="tl-item">
-      <div class="tl-dot" style="border-color:${sc[i.severity]};color:${sc[i.severity]}">${i.severity}</div>
+      <div class="tl-dot" style="border-color:${sc[sev]};color:${sc[sev]};background:rgba(0,0,0,.1)">${sev}</div>
       <div class="tl-body">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
-          <div><div class="tl-title">${i.machineName} — ${i.type}</div><div class="tl-meta">${fmt(i.date)}</div></div>
-          <button class="btn btn-success btn-sm" style="padding:3px 8px;font-size:10px;flex-shrink:0" onclick="quickCloseIssue('${i.id}')">✓ แก้แล้ว</button>
+          <div>
+            <div class="tl-title">${i.machineName} — ${i.type}</div>
+            <div class="tl-meta" style="display:flex;align-items:center;gap:5px;margin-top:2px">
+              <span style="color:${sc[sev]};font-weight:700;font-size:10px">${sevIcon[sev]} ${sevLabel[sev]}</span>
+              <span>· ${fmt(i.date)}</span>
+            </div>
+          </div>
+          <button class="btn btn-success btn-sm" style="padding:5px 10px;font-size:10px;flex-shrink:0;background:rgba(34,197,94,.18);border:1.5px solid rgba(34,197,94,.35)" onclick="quickCloseIssue('${i.id}')">✅ แก้ไขแล้ว</button>
         </div>
         <div class="tl-note">${i.desc}</div>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`}).join('')}</div>`;
 }
 
 // ══════════════════════════════════════════
@@ -1835,7 +1916,10 @@ function savePMRecord(rec){
   gsPost('savePM',rec);
 }
 function deletePMRecord(id){gsPost('deletePM',{id})}
-function saveIssueRecord(iss){gsPost('saveIssue',iss)}
+function saveIssueRecord(iss){
+  // ส่งทั้ง severity และ saverity (typo ใน sheet) เพื่อให้ Apps Script รับได้
+  gsPost('saveIssue',{...iss, saverity:iss.severity, severity:iss.severity});
+}
 function deleteIssueRecord(id){gsPost('deleteIssue',{id})}
 function saveMachines(){
   const payload=MACHINES.map(m=>({...m,pmCycleDays:pmCycles[m.id]||30}));
@@ -1863,7 +1947,8 @@ async function initData(){
     }));
     issues=(issueData||[]).map(i=>({
       ...i,machineId:Number(i.machineId),date:normalizeDate(i.date),
-      severity:Number(i.severity)||1,ts:Number(i.ts)||0,
+      severity:parseSeverity(i.severity??i.saverity),
+      ts:Number(i.ts)||0,
     }));
     if(machineData&&machineData.length){
       MACHINES=machineData.map(m=>({
