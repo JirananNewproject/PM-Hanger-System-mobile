@@ -1822,6 +1822,7 @@ function copyShareUrl(){
   navigator.clipboard.writeText(window.location.href).then(()=>toast('คัดลอกลิงก์แล้ว ✅')).catch(()=>toast('ไม่สามารถคัดลอกได้','error'));
 }
 function exportCSV(type){
+  const sevLabel=['','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
   let csv='',filename='';
   if(type==='pm'){
     csv='ID,Machine,Date,Shift,Tech,CheckedCount,TotalItems,Note,Timestamp\n';
@@ -1829,7 +1830,10 @@ function exportCSV(type){
     filename='pm_records.csv';
   }else{
     csv='ID,Machine,Type,Severity,Description,Status,Date,Assignee,Timestamp\n';
-    issues.forEach(i=>{csv+=`"${i.id}","${i.machineName}","${i.type}","${i.severity}","${i.desc.replace(/"/g,'""')}","${i.status}","${i.date}","${i.assignee||''}","${i.ts}"\n`});
+    issues.forEach(i=>{
+      const sev=parseSeverity(i.severity);
+      csv+=`"${i.id}","${i.machineName}","${i.type}","${sevLabel[sev]}","${i.desc.replace(/"/g,'""')}","${i.status}","${i.date}","${i.assignee||''}","${i.ts}"\n`;
+    });
     filename='issues.csv';
   }
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
