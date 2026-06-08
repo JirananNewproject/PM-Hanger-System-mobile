@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Hanger PM Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ══ CSS VARIABLES ══ */
+:root{
+  --bg:#1c1612; --surface:#251f18; --surface2:#2f2720; --surface3:#3a3028;
+  --border:rgba(255,200,120,.08); --border2:rgba(255,200,120,.16);
+  --text:#f0e8dc; --muted:#9e8f7e;
+  --accent:#f5a623; --accent2:#e8623a; --accent3:#c8a96e;
+  --day-color:#fbbf24; --night-color:#818cf8;
+  --warn:#f59e0b; --danger:#ef4444; --success:#22c55e; --purple:#a78bfa;
+  --radius:10px; --radius-lg:16px;
+  --font:'Sarabun',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --shadow:0 2px 12px rgba(0,0,0,.4);
+  --nav-h:64px; --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+body.light{
+  --bg:#f4f1ec; --surface:#fff; --surface2:#f0ece4; --surface3:#e4ddd2;
+  --border:rgba(160,120,60,.12); --border2:rgba(160,120,60,.22);
+  --text:#2c2318; --muted:#7a6a58; --accent:#d4820a; --accent2:#c04a20; --accent3:#9a7840;
+  --day-color:#b45309; --night-color:#4f46e5; --warn:#b45309; --danger:#dc2626;
+  --success:#16a34a; --purple:#7c3aed; --shadow:0 2px 12px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6}
+
+/* ══ LAYOUT ══ */
+#app{display:flex;flex-direction:column;height:100vh;height:-webkit-fill-available;overflow:hidden}
+#page-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--safe-bottom))}
+.view{display:none;padding-bottom:12px}
+.view.active{display:block}
+
+/* ══ TOP BAR ══ */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px}
+.topbar-actions{display:flex;gap:6px;align-items:center}
+.icon-btn{width:36px;height:36px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* ══ BOTTOM NAV ══ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:var(--safe-bottom);height:calc(var(--nav-h) + var(--safe-bottom))}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:8px 0;border:none;background:none;color:var(--muted);font-family:var(--font);font-size:10px;font-weight:600;position:relative;transition:color .15s}
+.nav-tab.active{color:var(--accent)}
+.nav-tab .ti{font-size:20px;line-height:1}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:700;min-width:16px;text-align:center}
+
+/* ══ CLOCK STRIP ══ */
+.clock-strip{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.clock-time{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.clock-date-sm{font-size:11px;color:var(--muted)}
+.shift-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px}
+.shift-day{background:rgba(251,191,36,.15);color:var(--day-color);border:1px solid rgba(251,191,36,.25)}
+.shift-night{background:rgba(129,140,248,.15);color:var(--night-color);border:1px solid rgba(129,140,248,.25)}
+.clock-remain{font-size:11px;color:var(--muted);margin-left:auto}
+.clock-warn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:4px 10px;border-radius:7px;font-size:11px;font-weight:600;display:none;width:100%;margin-top:4px}
+.clock-warn.show{display:flex;align-items:center;gap:5px}
+
+/* ══ SECTION BLOCKS ══ */
+.section{padding:12px 14px}
+.section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+
+/* ══ STAT CARDS ══ */
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 14px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:4px}
+.stat-value{font-size:28px;font-weight:700;font-family:var(--mono);line-height:1}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ══ MACHINE CARDS ══ */
+.machines-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;padding:0 14px}
+.machine-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;user-select:none;active:scale(.97)}
+.machine-card:active{transform:scale(.97);opacity:.9}
+.machine-card.pm-day{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05)}
+.machine-card.pm-night{border-color:rgba(129,140,248,.4);background:rgba(129,140,248,.05)}
+.machine-card.pm-both{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.04)}
+.machine-card.has-issue{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04)}
+.machine-card.overdue-card{border-color:rgba(239,68,68,.5)!important;box-shadow:0 0 0 1px rgba(239,68,68,.15)}
+.mnum{font-size:9px;color:var(--muted);font-family:var(--mono);margin-bottom:2px}
+.mname{font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.2}
+.mtags{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mtag{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;white-space:nowrap}
+.mtag-day{background:rgba(34,197,94,.15);color:var(--success)}
+.mtag-night{background:rgba(34,197,94,.15);color:var(--success)}
+.mtag-both{background:rgba(34,197,94,.15);color:var(--success)}
+.mtag-issue{background:rgba(239,68,68,.15);color:var(--danger)}
+.mtag-pending{background:rgba(158,143,126,.1);color:var(--muted)}
+.days-since{font-size:9px;font-family:var(--mono);padding:2px 5px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-block;margin-top:4px}
+.days-today{background:rgba(34,197,94,.18);color:var(--success)}
+.days-ok{background:rgba(99,179,237,.18);color:#3b9eca}
+.days-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.days-over{background:rgba(239,68,68,.15);color:var(--danger)}
+.issue-dot{position:absolute;top:7px;right:7px;background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700}
+.overdue-tag{position:absolute;bottom:7px;right:7px;font-size:8px;background:rgba(239,68,68,.2);color:var(--danger);padding:1px 4px;border-radius:3px;font-weight:700}
+
+/* ══ CARD (generic) ══ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin:0 14px 12px}
+.card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:12px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* ══ MONTH PROGRESS ══ */
+.month-bar-wrap{margin:0 14px 12px}
+.month-bar-track{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin:6px 0 4px}
+.month-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s}
+.month-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+/* ══ PENDING ALERT ══ */
+.pending-alert{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:var(--radius);padding:10px 12px;margin:0 14px 10px}
+.pending-alert-title{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.pending-chips{display:flex;flex-wrap:wrap;gap:5px}
+.pending-chip{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .15s}
+.pending-chip.overdue-chip{background:rgba(239,68,68,.1);color:var(--danger);border-color:rgba(239,68,68,.3)}
+
+/* ══ CRITICAL BANNER ══ */
+.critical-banner{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);padding:10px 12px;margin:0 14px 10px;animation:pulse-bdr 2s infinite}
+@keyframes pulse-bdr{0%,100%{border-color:rgba(239,68,68,.3)}50%{border-color:var(--danger)}}
+.critical-title{font-size:12px;font-weight:700;color:var(--danger);display:flex;align-items:center;gap:5px}
+.critical-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.critical-tag{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.2);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer}
+
+/* ══ BUTTONS ══ */
+.btn{padding:10px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#1c1612}
+.btn-secondary{background:var(--surface3);color:var(--text);border:1px solid var(--border2)}
+.btn-danger{background:rgba(239,68,68,.14);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.btn-success{background:rgba(34,197,94,.14);color:var(--success);border:1px solid rgba(34,197,94,.2)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.btn-icon{width:38px;height:38px;border-radius:9px;background:var(--surface3);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+
+/* ══ FORM ══ */
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.form-control{background:var(--surface2);border:1px solid var(--border2);border-radius:9px;padding:11px 13px;color:var(--text);font-family:var(--font);font-size:14px;transition:border-color .15s;width:100%;-webkit-appearance:none}
+.form-control:focus{outline:none;border-color:var(--accent)}
+.form-control::placeholder{color:var(--muted)}
+select.form-control{cursor:pointer}
+select.form-control option{background:var(--surface2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ══ SHIFT PICKER ══ */
+.shift-picker{display:flex;gap:8px;margin-bottom:12px}
+.shift-opt{flex:1;padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;transition:all .15s;font-size:13px;font-weight:600;color:var(--muted);-webkit-tap-highlight-color:transparent}
+.shift-opt.sel-day{border-color:var(--day-color);background:rgba(251,191,36,.1);color:var(--day-color)}
+.shift-opt.sel-night{border-color:var(--night-color);background:rgba(129,140,248,.1);color:var(--night-color)}
+
+/* ══ CHECKLIST ══ */
+.chk-item{display:flex;align-items:center;gap:9px;padding:11px 12px;background:var(--surface2);border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:6px;border:1px solid var(--border)}
+.chk-item input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;cursor:pointer;flex-shrink:0}
+.chk-item.checked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2)}
+
+/* ══ MODAL ══ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);padding-bottom:calc(20px + var(--safe-bottom))}
+.overlay.open .modal{transform:translateY(0)}
+.modal-handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0}
+.modal-header{padding:14px 20px 0;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700}
+.modal-body{padding:16px 20px;display:flex;flex-direction:column;gap:0}
+.modal-footer{padding:0 20px 8px;display:flex;flex-direction:column;gap:8px}
+
+/* ══ ISSUE CARDS ══ */
+.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
+.issue-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.issue-machine{font-size:13px;font-weight:700}
+.issue-type{font-size:11px;color:var(--muted)}
+.issue-desc{font-size:12px;color:var(--muted);margin-top:4px;padding:6px 10px;background:var(--surface2);border-radius:6px;border-left:2px solid var(--accent3)}
+.sev-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+.sev-1{background:#22c55e}.sev-2{background:#fbbf24}.sev-3{background:#f97316}.sev-4{background:#ef4444}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.badge-success{background:rgba(34,197,94,.15);color:var(--success)}
+.badge-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.badge-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+
+/* ══ TABS ══ */
+.tabs{display:flex;gap:3px;padding:4px;background:var(--surface2);border-radius:10px;margin-bottom:12px}
+.tab-btn{flex:1;padding:8px 10px;border-radius:7px;border:none;background:none;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab-btn.active{background:var(--surface);color:var(--text);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+/* ══ SEARCH BAR ══ */
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0 12px;margin:10px 14px 12px}
+.search-bar:focus-within{border-color:var(--accent)}
+.search-bar input{background:none;border:none;color:var(--text);font-family:var(--font);font-size:13px;padding:10px 0;flex:1;outline:none}
+.search-bar input::placeholder{color:var(--muted)}
+
+/* ══ TIMELINE ══ */
+.tl-item{display:flex;gap:10px;padding-bottom:14px;position:relative}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:13px;top:28px;bottom:0;width:1px;background:var(--border)}
+.tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;border:2px solid var(--border);font-weight:700}
+.tl-body{flex:1;padding-top:2px}
+.tl-title{font-size:12px;font-weight:600}
+.tl-meta{font-size:10px;color:var(--muted)}
+.tl-note{font-size:11px;color:var(--muted);margin-top:5px;padding:6px 9px;background:var(--surface2);border-radius:6px;border-left:2px solid var(--accent3)}
+
+/* ══ CHART ══ */
+.chart-wrap{position:relative;width:100%;height:200px}
+
+/* ══ PROGRESS BARS ══ */
+.progress-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* ══ FILTER PILLS ══ */
+.filter-pills{display:flex;gap:6px;overflow-x:auto;padding:0 14px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-pills::-webkit-scrollbar{display:none}
+.pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.pill.active{background:rgba(245,166,35,.15);color:var(--accent);border-color:rgba(245,166,35,.3)}
+
+/* ══ EMPTY STATE ══ */
+.empty{text-align:center;padding:32px 20px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:8px;opacity:.4}
+.empty-text{font-size:13px;font-weight:600;color:var(--text);opacity:.45;margin-bottom:3px}
+.empty-sub{font-size:11px}
+
+/* ══ TOAST ══ */
+.toast-box{position:fixed;top:16px;left:16px;right:16px;z-index:999;pointer-events:none;display:flex;flex-direction:column;gap:7px}
+.toast{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:9px;animation:slideDown .25s ease;box-shadow:0 4px 24px rgba(0,0,0,.5);pointer-events:all}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}}
+.toast.success{border-color:rgba(34,197,94,.3)}
+.toast.error{border-color:rgba(239,68,68,.3)}
+
+/* ══ SYNC BUTTON ══ */
+.sync-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2);border-radius:9px;color:var(--accent);font-family:var(--font);font-size:12px;font-weight:600;padding:9px 16px;cursor:pointer;margin:0 14px 14px;width:calc(100% - 28px)}
+.sync-btn:active{transform:scale(.97)}
+
+/* ══ LOADING OVERLAY ══ */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#loading .spin{font-size:40px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading .load-text{font-size:16px;font-weight:700;color:var(--text)}
+#loading .load-sub{font-size:12px;color:var(--muted)}
+
+/* ══ BATCH MODE ══ */
+.batch-bar{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:var(--radius);padding:10px 12px;margin:0 14px 10px;display:none;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.batch-bar.show{display:flex}
+.machine-card.batch-selected{border-color:var(--accent)!important;background:rgba(245,166,35,.1)!important;box-shadow:0 0 0 2px rgba(245,166,35,.25)}
+.batch-chk{position:absolute;top:8px;left:8px;width:16px;height:16px;accent-color:var(--accent);cursor:pointer;display:none;z-index:2}
+.batch-mode .batch-chk{display:block}
+.batch-mode .machine-card{padding-left:28px}
+
+/* ══ DIVIDER ══ */
+.divider{height:1px;background:var(--border);margin:10px 0}
+
+/* ══ SETTINGS ROWS ══ */
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;font-weight:600}
+.setting-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ══ HISTORY TABLE ══ */
+.hist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.hist-item:last-child{border-bottom:none}
+.hist-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.hist-body{flex:1;min-width:0}
+.hist-machine{font-size:13px;font-weight:600}
+.hist-meta{font-size:11px;color:var(--muted)}
+.hist-note{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ══ INPUT DATE FIX ══ */
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=month]::-webkit-calendar-picker-indicator{filter:invert(0.6);cursor:pointer}
+
+/* ══ PM CHECKLIST COUNTER ══ */
+.chk-counter{font-size:11px;color:var(--muted);text-align:right;margin-top:2px;font-family:var(--mono)}
+
+/* scroll fix */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spin">⚙️</div>
+  <div class="load-text">กำลังโหลดข้อมูล</div>
+  <div class="load-sub">เชื่อมต่อ Google Sheets...</div>
+</div>
+
+<div id="app" style="display:none">
+
+<!-- PAGE WRAP -->
+<div id="page-wrap">
+
+<!-- ══ DASHBOARD ══ -->
+<div class="view active" id="view-dashboard">
+  <div class="topbar">
+    <div class="topbar-title">⚙️ Hanger PM</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="initData()" title="Sync ข้อมูล" id="sync-icon-btn">🔄</button>
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="เปลี่ยนธีม">☀️</button>
+    </div>
+  </div>
+
+  <!-- Clock strip -->
+  <div class="clock-strip">
+    <div>
+      <div class="clock-time" id="clock-time">--:--:--</div>
+      <div class="clock-date-sm" id="clock-date">--</div>
+    </div>
+    <div id="clock-shift-badge" class="shift-badge shift-day">🌅 กะเช้า</div>
+    <div class="clock-remain">สิ้นกะใน <strong id="clock-remain">--</strong></div>
+    <div class="clock-warn" id="clock-warn">⚠️ <span>ใกล้สิ้นกะ!</span></div>
+  </div>
+
+  <!-- Stats 2x2 -->
+  <div class="stats-row">
+    <div class="stat-card" style="grid-column:span 2;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="stat-label" style="flex:none;margin:0">PM วันนี้</div>
+        <div id="dash-shift-badge" class="shift-badge shift-day" style="font-size:10px;padding:3px 8px">🌅 กะเช้า</div>
+        <div id="dash-shift-remain" style="font-size:11px;color:var(--muted);margin-left:auto">สิ้นกะใน --</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+        <div class="stat-value" id="stat-today" style="color:var(--accent)">0</div>
+        <div class="stat-sub" id="stat-today-pct">/ 0 เครื่อง (0%)</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">กะเช้า 🌅</div>
+      <div class="stat-value" id="stat-day-shift" style="color:var(--day-color)">0</div>
+      <div class="stat-sub">เครื่องวันนี้</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">กะดึก 🌙</div>
+      <div class="stat-value" id="stat-night-shift" style="color:var(--night-color)">0</div>
+      <div class="stat-sub">เครื่องวันนี้</div>
+    </div>
+    <div class="stat-card" onclick="showView('pm')" style="cursor:pointer">
+      <div class="stat-label">เกินรอบ ⏰</div>
+      <div class="stat-value" id="stat-overdue" style="color:var(--danger)">0</div>
+      <div class="stat-sub">ต้องรีบ PM</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ปัญหาค้าง ⚠️</div>
+      <div class="stat-value" id="stat-open-issues" style="color:var(--warn)">0</div>
+      <div class="stat-sub">รายการ</div>
+    </div>
+  </div>
+
+  <!-- Critical banner -->
+  <div id="critical-banner-wrap"></div>
+
+  <!-- Month progress -->
+  <div class="month-bar-wrap">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-weight:700">
+      <span>ความคืบหน้า PM เดือนนี้</span>
+      <span id="month-prog-text" style="font-family:var(--mono);color:var(--text)">0/0</span>
+    </div>
+    <div class="month-bar-track"><div class="month-bar-fill" id="month-prog-fill" style="width:0%"></div></div>
+    <div class="month-bar-labels">
+      <span id="month-prog-done">PM แล้ว 0 เครื่อง</span>
+      <span id="month-prog-left" style="color:var(--danger)">เหลืออีก 0 เครื่อง</span>
+    </div>
+  </div>
+
+  <!-- Pending alert -->
+  <div id="dash-pending-wrap"></div>
+
+  <!-- Weekly chart -->
+  <div class="card">
+    <div class="card-title"><div class="dot" style="background:var(--accent)"></div>PM รายสัปดาห์ (แยกกะ)</div>
+    <div class="chart-wrap"><canvas id="chartWeekly"></canvas></div>
+  </div>
+
+  <!-- Recent issues -->
+  <div class="card">
+    <div class="card-title"><div class="dot" style="background:var(--danger)"></div>ปัญหาค้างอยู่</div>
+    <div id="recent-issues-list"></div>
+  </div>
+
+  <!-- Quick PM button -->
+  <div style="padding:0 14px 4px">
+    <button class="btn btn-primary btn-full" onclick="showView('pm')" id="dash-pm-btn">➕ บันทึก PM</button>
+  </div>
+</div>
+
+<!-- ══ PM RECORD ══ -->
+<div class="view" id="view-pm">
+  <div class="topbar">
+    <div class="topbar-title">🔧 บันทึก PM</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleBatchMode()" id="batch-toggle-btn" title="เลือกหลายเครื่อง">☑️</button>
+    </div>
+  </div>
+
+  <div class="clock-strip">
+    <div>
+      <div class="clock-time" id="pm-clock-time">--:--:--</div>
+      <div class="clock-date-sm" id="pm-clock-date">--</div>
+    </div>
+    <div id="pm-shift-badge" class="shift-badge shift-day">🌅 กะเช้า</div>
+    <div class="clock-remain">สิ้นกะใน <strong id="pm-clock-remain">--</strong></div>
+    <div class="clock-warn" id="pm-clock-warn">⚠️ <span>ใกล้สิ้นกะ!</span></div>
+  </div>
+
+  <!-- Date + filter -->
+  <div style="padding:10px 14px 6px;display:flex;align-items:center;gap:8px">
+    <input type="date" class="form-control" id="pm-date-input" style="flex:1" onchange="renderPMGrid()">
+    <input type="month" class="form-control" id="pm-month-filter" style="width:130px;padding:10px 8px" onchange="onPMMonthFilter(this.value)">
+  </div>
+  <div style="padding:0 14px 4px;display:flex;gap:8px;align-items:center">
+    <span class="shift-badge shift-day" id="pm-day-count">🌅 0</span>
+    <span class="shift-badge shift-night" id="pm-night-count">🌙 0</span>
+    <span id="pm-pending-count" style="font-size:11px;color:var(--danger);margin-left:auto;font-weight:600"></span>
+  </div>
+
+  <!-- Filter pills -->
+  <div class="filter-pills" id="pm-filter-pills">
+    <div class="pill active" onclick="setPMFilter('all',this)">ทั้งหมด</div>
+    <div class="pill" onclick="setPMFilter('pending',this)">⚪ ยังไม่ PM</div>
+    <div class="pill" onclick="setPMFilter('day',this)">🌅 กะเช้า</div>
+    <div class="pill" onclick="setPMFilter('night',this)">🌙 กะดึก</div>
+    <div class="pill" onclick="setPMFilter('both',this)">✅ ครบ</div>
+    <div class="pill" onclick="setPMFilter('issue',this)">🔴 ปัญหา</div>
+    <div class="pill" onclick="setPMFilter('overdue',this)">⏰ เกินรอบ</div>
+  </div>
+
+  <!-- Pending summary -->
+  <div id="pm-pending-list-wrap"></div>
+
+  <!-- Batch bar -->
+  <div class="batch-bar" id="batch-bar">
+    <span style="font-size:12px;font-weight:700;color:var(--accent)" id="batch-count-label">เลือก 0 เครื่อง</span>
+    <div style="display:flex;gap:6px;margin-left:auto">
+      <button class="btn btn-secondary btn-sm" onclick="batchSelectAll()">ทั้งหมด</button>
+      <button class="btn btn-secondary btn-sm" onclick="batchClear()">ล้าง</button>
+      <button class="btn btn-primary btn-sm" onclick="openBatchPMModal()">🔧 บันทึก</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <span style="color:var(--muted)">🔍</span>
+    <input type="text" placeholder="ค้นหาเครื่อง..." oninput="filterMachines(this.value)" id="pm-search">
+  </div>
+
+  <!-- Machine grid -->
+  <div class="machines-grid" id="machine-pm-grid"></div>
+  <div style="height:8px"></div>
+</div>
+
+<!-- ══ ISSUES ══ -->
+<div class="view" id="view-issues">
+  <div class="topbar">
+    <div class="topbar-title">⚠️ ปัญหา</div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="openIssueModal()">➕ เพิ่ม</button>
+    </div>
+  </div>
+
+  <div style="padding:10px 14px 4px;display:flex;gap:8px;align-items:center">
+    <select class="form-control" id="issue-machine-filter" onchange="renderIssuesTable()" style="flex:1;padding:9px 10px">
+      <option value="all">ทุกเครื่อง</option>
+    </select>
+  </div>
+
+  <div class="tabs" style="margin:6px 14px 4px">
+    <button class="tab-btn active" onclick="filterIssues('all',this)">ทั้งหมด</button>
+    <button class="tab-btn" onclick="filterIssues('open',this)">เปิดอยู่</button>
+    <button class="tab-btn" onclick="filterIssues('in-progress',this)">กำลังแก้</button>
+    <button class="tab-btn" onclick="filterIssues('closed',this)">แก้แล้ว</button>
+  </div>
+
+  <div id="issues-list" style="padding:0 14px"></div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="view" id="view-history">
+  <div class="topbar">
+    <div class="topbar-title">📋 ประวัติ PM</div>
+  </div>
+  <div style="padding:10px 14px 6px;display:flex;gap:8px">
+    <select class="form-control" id="hist-machine-filter" onchange="renderHistory()" style="flex:1;padding:9px 10px">
+      <option value="all">ทุกเครื่อง</option>
+    </select>
+    <input type="month" class="form-control" id="hist-month" style="width:130px;padding:9px 8px" onchange="renderHistory()">
+  </div>
+  <div id="history-list" style="padding:0 14px"></div>
+</div>
+
+<!-- ══ MORE (Analytics + Settings) ══ -->
+<div class="view" id="view-more">
+  <div class="topbar">
+    <div class="topbar-title">⚙️ เพิ่มเติม</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn2">☀️</button>
+    </div>
+  </div>
+
+  <div class="tabs" style="margin:12px 14px 0">
+    <button class="tab-btn active" onclick="switchMoreTab('analytics',this)">📈 วิเคราะห์</button>
+    <button class="tab-btn" onclick="switchMoreTab('settings',this)">⚙️ ตั้งค่า</button>
+    <button class="tab-btn" onclick="switchMoreTab('share',this)">🔗 แชร์</button>
+  </div>
+
+  <!-- Analytics tab -->
+  <div id="more-tab-analytics">
+    <div class="stats-row" style="padding-top:12px">
+      <div class="stat-card"><div class="stat-label">เฉลี่ย PM/วัน</div><div class="stat-value" id="ana-avg" style="color:var(--accent)">—</div></div>
+      <div class="stat-card"><div class="stat-label">PM มากสุด</div><div class="stat-value" id="ana-top-pm" style="color:var(--success);font-size:18px">—</div></div>
+    </div>
+    <div style="padding:0 14px 6px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">ช่วงเวลา:</span>
+      <select class="form-control" id="analytics-period" onchange="renderAnalytics()" style="flex:1;padding:8px 10px">
+        <option value="30">30 วันล่าสุด</option><option value="60">60 วัน</option>
+        <option value="90">90 วัน</option><option value="all">ทั้งหมด</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--success)"></div>Compliance Rate รายเดือน</div>
+      <div class="chart-wrap"><canvas id="chartCompliance"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--accent)"></div>PM แต่ละเครื่องสะสม</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartMachineBar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--night-color)"></div>แนวโน้มรายเดือน</div>
+      <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--success)"></div>อัตราสำเร็จรายเครื่อง</div>
+      <div id="machine-completion-bars" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+
+  <!-- Settings tab -->
+  <div id="more-tab-settings" style="display:none">
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">👤 ชื่อช่าง</div>
+      <div class="form-group" style="margin-bottom:0">
+        <input type="text" class="form-control" id="set-username" placeholder="ชื่อของคุณ..." oninput="autoSaveUserName(this.value)">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">⏰ รอบ PM (วัน)</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <input type="number" class="form-control" id="global-cycle-input" value="30" min="1" max="365" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="applyGlobalCycle()">ใช้ทั้งหมด</button>
+      </div>
+      <div id="pm-cycle-settings-grid" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ เครื่องจักร</div>
+      <div id="machines-settings-list"></div>
+      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:8px" onclick="addNewMachine()">➕ เพิ่มเครื่องใหม่</button>
+    </div>
+  </div>
+
+  <!-- Share tab -->
+  <div id="more-tab-share" style="display:none">
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🔗 แชร์ระบบนี้</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">แชร์ลิงก์นี้ให้ทีมของคุณเปิดบนโทรศัพท์</p>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--accent3);margin-bottom:10px" id="share-url-display"></div>
+      <button class="btn btn-primary btn-full" onclick="copyShareUrl()">📋 คัดลอกลิงก์</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📤 ส่งออกข้อมูล</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-secondary btn-full" onclick="exportCSV('pm')">📊 Export PM Records (CSV)</button>
+        <button class="btn btn-secondary btn-full" onclick="exportCSV('issues')">⚠️ Export Issues (CSV)</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 Google Sheets URL</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Script URL ที่ใช้เชื่อมต่อ</div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;font-family:var(--mono);word-break:break-all;color:var(--accent3)" id="gs-url-display"></div>
+      <button class="sync-btn" style="margin:10px 0 0" onclick="initData()">🔄 Sync ข้อมูลใหม่</button>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end page-wrap -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" onclick="showView('dashboard')">
+    <span class="ti">📊</span>หน้าหลัก
+  </button>
+  <button class="nav-tab" onclick="showView('pm')">
+    <span class="ti">🔧</span>บันทึก PM
+  </button>
+  <button class="nav-tab" onclick="showView('issues')">
+    <span class="ti">⚠️</span>ปัญหา
+    <span class="nav-badge" id="issue-badge" style="display:none">0</span>
+  </button>
+  <button class="nav-tab" onclick="showView('history')">
+    <span class="ti">📋</span>ประวัติ
+  </button>
+  <button class="nav-tab" onclick="showView('more')">
+    <span class="ti">⚙️</span>เพิ่มเติม
+  </button>
+</nav>
+
+</div><!-- end app -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-box" id="toasts"></div>
+
+<!-- ══ MODAL: PM Entry ══ -->
+<div class="overlay" id="modal-pm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">🔧 PM — <span id="modal-pm-machine-name">—</span></div>
+      <button class="icon-btn" onclick="closeModal('modal-pm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row2" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">วันที่</div>
+          <input type="date" class="form-control" id="pm-entry-date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">ช่างผู้ทำ PM</div>
+          <input type="text" class="form-control" id="pm-entry-tech" placeholder="ชื่อช่าง...">
+        </div>
+      </div>
+      <div class="form-label" style="margin-bottom:6px">กะการทำงาน</div>
+      <div class="shift-picker">
+        <div class="shift-opt sel-day" id="opt-day" onclick="selectShift('day')">🌅 กะเช้า<br><span style="font-size:10px;font-weight:400">08:30–20:30</span></div>
+        <div class="shift-opt" id="opt-night" onclick="selectShift('night')">🌙 กะดึก<br><span style="font-size:10px;font-weight:400">20:30–08:30</span></div>
+      </div>
+      <div class="form-label" style="margin-bottom:6px">รายการ PM <span id="chk-count-label" class="chk-counter"></span></div>
+      <div id="pm-checklist"></div>
+      <div class="form-group">
+        <div class="form-label">หมายเหตุ</div>
+        <textarea class="form-control" id="pm-entry-note" rows="2" placeholder="หมายเหตุ..."></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <div class="form-label">พบปัญหา?</div>
+        <select class="form-control" id="pm-entry-has-issue" onchange="toggleIssueSection(this.value)">
+          <option value="no">ไม่พบปัญหา</option>
+          <option value="yes">พบปัญหา (สร้างอัตโนมัติ)</option>
+        </select>
+      </div>
+      <div id="pm-issue-section" style="display:none;margin-top:10px">
+        <div class="row2" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <div class="form-label">ประเภทปัญหา</div>
+            <select class="form-control" id="pm-issue-type" style="padding:10px 8px">
+              <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบไฮดรอลิก</option><option>ชิ้นส่วนสึกหรอ</option><option>การปรับตั้ง</option><option>อื่นๆ</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <div class="form-label">ความรุนแรง</div>
+            <select class="form-control" id="pm-issue-severity" style="padding:10px 8px">
+              <option value="1">1 - เล็กน้อย</option><option value="2">2 - ปานกลาง</option><option value="3">3 - รุนแรง</option><option value="4">4 - วิกฤต</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">รายละเอียดปัญหา</div>
+          <textarea class="form-control" id="pm-issue-desc" rows="2" placeholder="อธิบายปัญหา..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full" onclick="savePMEntry()">✅ บันทึก PM</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-pm')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Issue ══ -->
+<div class="overlay" id="modal-issue">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-issue-title">➕ เพิ่มปัญหา</div>
+      <button class="icon-btn" onclick="closeModal('modal-issue')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row2" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">เครื่อง</div>
+          <select class="form-control" id="issue-machine" style="padding:10px 8px"></select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">วันที่พบ</div>
+          <input type="date" class="form-control" id="issue-date">
+        </div>
+      </div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">ประเภท</div>
+          <select class="form-control" id="issue-type" style="padding:10px 8px">
+            <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบไฮดรอลิก</option><option>ชิ้นส่วนสึกหรอ</option><option>การปรับตั้ง</option><option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">ระดับ</div>
+          <select class="form-control" id="issue-severity" style="padding:10px 8px">
+            <option value="1">1 - เล็กน้อย</option><option value="2">2 - ปานกลาง</option><option value="3">3 - รุนแรง</option><option value="4">4 - วิกฤต</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">รายละเอียด</div>
+        <textarea class="form-control" id="issue-desc" rows="3" placeholder="อธิบายปัญหา..."></textarea>
+      </div>
+      <div class="row2" style="margin-bottom:0">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">สถานะ</div>
+          <select class="form-control" id="issue-status-select" style="padding:10px 8px">
+            <option value="open">เปิดอยู่</option><option value="in-progress">กำลังแก้ไข</option><option value="closed">แก้ไขแล้ว</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">ผู้รับผิดชอบ</div>
+          <input type="text" class="form-control" id="issue-assignee" placeholder="ชื่อช่าง...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full" onclick="saveIssue()">✅ บันทึก</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-issue')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Machine Detail ══ -->
+<div class="overlay" id="modal-machine">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-machine-title">—</div>
+      <button class="icon-btn" onclick="closeModal('modal-machine')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchMachineTab('pm',this)">PM Log</button>
+        <button class="tab-btn" onclick="switchMachineTab('issues',this)">ปัญหา</button>
+      </div>
+      <div id="machine-tab-pm"></div>
+      <div id="machine-tab-issues" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="openPMFromDetail()">+ บันทึก PM</button>
+        <button class="btn btn-secondary" style="flex:1" onclick="openIssueFromDetail()">+ ปัญหา</button>
+      </div>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-machine')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Delete PM ══ -->
+<div class="overlay" id="modal-delete-pm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" style="color:var(--danger)">🗑️ ยืนยันลบ PM</div><button class="icon-btn" onclick="closeModal('modal-delete-pm')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px">ต้องการลบบันทึก PM นี้หรือไม่?</p>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:8px;font-size:13px" id="delete-pm-details"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-full" onclick="executeDeletePM()">🗑️ ยืนยันลบ</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-delete-pm')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Batch PM ══ -->
+<div class="overlay" id="modal-batch-pm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">🔧 PM หลายเครื่อง</div>
+      <button class="icon-btn" onclick="closeModal('modal-batch-pm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--muted);margin-bottom:12px">
+        เครื่องที่เลือก: <span id="batch-machine-list" style="color:var(--accent);font-weight:600"></span>
+      </div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">วันที่</div>
+          <input type="date" class="form-control" id="batch-date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">ช่าง</div>
+          <input type="text" class="form-control" id="batch-tech" placeholder="ชื่อช่าง...">
+        </div>
+      </div>
+      <div class="form-label" style="margin-bottom:6px">กะ</div>
+      <div class="shift-picker">
+        <div class="shift-opt sel-day" id="batch-opt-day" onclick="selectBatchShift('day')">🌅 กะเช้า</div>
+        <div class="shift-opt" id="batch-opt-night" onclick="selectBatchShift('night')">🌙 กะดึก</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <div class="form-label">หมายเหตุ (ใช้กับทุกเครื่อง)</div>
+        <textarea class="form-control" id="batch-note" rows="2" placeholder="หมายเหตุ..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full" onclick="saveBatchPM()">✅ บันทึก PM ทั้งหมด</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-batch-pm')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Edit Machine ══ -->
+<div class="overlay" id="modal-edit-machine">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">✏️ แก้ไขเครื่อง</div><button class="icon-btn" onclick="closeModal('modal-edit-machine')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-machine-id">
+      <div class="form-group">
+        <div class="form-label">ชื่อเครื่อง</div>
+        <input type="text" class="form-control" id="edit-machine-name">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <div class="form-label">รุ่น / Model</div>
+        <input type="text" class="form-control" id="edit-machine-model">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full" onclick="saveMachineEdit()">✅ บันทึก</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-edit-machine')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// GOOGLE SHEETS DATA LAYER
+// ══════════════════════════════════════════
+const GS_URL='https://script.google.com/macros/s/AKfycbzdDUpDHE3wFSdxZEsxSX1IWuDkbGr9FS0sGfzcZYPGjDaOjGdvT5Zqn0DpQJ4E70lg/exec';
+
+async function gsGet(action){
+  try{
+    const res=await fetch(`${GS_URL}?action=${action}`,{redirect:'follow'});
+    const data=await res.json();
+    if(data.error){console.error('gsGet error:',data.error);return[]}
+    return Array.isArray(data)?data:(data.data||[]);
+  }catch(e){console.error('gsGet failed:',e);return[]}
+}
+async function gsPost(action,payload){
+  try{
+    const res=await fetch(GS_URL,{
+      method:'POST',redirect:'follow',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action,payload})
+    });
+    if(!res.ok){toast('⚠️ บันทึกไม่สำเร็จ (HTTP '+res.status+')','error')}
+  }catch(e){toast('⚠️ บันทึกไม่สำเร็จ — ไม่สามารถเชื่อมต่อ Google Sheet ได้','error')}
+}
+
+// ══════════════════════════════════════════
+// DATA CONSTANTS
+// ══════════════════════════════════════════
+const PM_CHECKLIST=['ตรวจสอบและทำความสะอาดทั่วไป','ตรวจสอบระบบหล่อลื่น (น้ำมัน/จาระบี)','ตรวจสอบระบบโซ่','ตรวจสอบระบบไฟฟ้าและสายไฟ','ตรวจสอบ Limit Sensor ต่างๆ','ตรวจสอบ X-Bar','ตรวจสอบล้อ Roller','ตรวจสอบน็อตสกรู','ตรวจวัดและปรับระยะรู Pin Hanger','ทดสอบการทำงานก่อนปล่อยรับรถ'];
+
+const DEFAULT_MACHINES=Array.from({length:20},(_,i)=>({id:i+1,name:`Hanger ${String(i+1).padStart(2,'0')}`,model:`HNG-${200+i*5}`}));
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let MACHINES=[...DEFAULT_MACHINES];
+let pmRecords=[];
+let issues=[];
+let settings={};
+let pmCycles={};
+let charts={};
+let currentMachineId=null;
+let editIssueId=null;
+let issueFilterStatus='all';
+let pmStatusFilter='all';
+let searchTerm='';
+let selectedShift='day';
+let pendingDeleteId=null;
+let batchMode=false;
+let batchSelected=new Set();
+let batchShift='day';
+let currentMoreTab='analytics';
+
+// ══════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════
+function today(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`}
+function parseLocalDate(s){if(!s)return new Date(NaN);const p=String(s).slice(0,10).split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]))}
+function normalizeDate(s){
+  if(!s)return'';
+  const str=String(s).trim();
+  if(str.includes('T')||str.endsWith('Z')){const d=new Date(str);if(!isNaN(d)){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}}
+  const short=str.slice(0,10);
+  if(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(short)){const p=short.split(/[\/\-]/);return`${p[2]}-${p[1]}-${p[0]}`}
+  if(/^\d{4}[\/\-]\d{2}[\/\-]\d{2}$/.test(short)){return short.replace(/\//g,'-')}
+  return short;
+}
+function fmt(d){if(!d)return'—';const clean=String(d).slice(0,10);const p=clean.split('-');if(p.length!==3||p[0].length!==4)return clean;return`${p[2]}/${p[1]}/${p[0]}`}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function thaiDate(d){if(!d)d=new Date();return d.toLocaleDateString('th-TH',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}
+function shiftLabel(s){return s==='day'?'🌅 กะเช้า':'🌙 กะดึก'}
+
+function toast(msg,type='success'){
+  const box=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span><span>${msg}</span>`;
+  box.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+function chartMuted(){return document.body.classList.contains('light')?'#7a6a58':'#9e8f7e'}
+function chartGrid(){return document.body.classList.contains('light')?'rgba(160,120,60,.1)':'rgba(255,200,120,.06)'}
+
+// ══════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+// Close modal by tapping overlay background
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('overlay')) e.target.classList.remove('open');
+});
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  const tabs=['dashboard','pm','issues','history','more'];
+  const idx=tabs.indexOf(name);
+  if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='pm'){renderPMGrid();populateHistoryFilter();}
+  if(name==='issues'){renderIssuesCards();populateIssueMachineFilter();}
+  if(name==='history'){populateHistoryFilter();renderHistory();}
+  if(name==='more'){renderMoreContent();}
+  document.getElementById('page-wrap').scrollTo(0,0);
+}
+
+function switchMoreTab(tab,btn){
+  currentMoreTab=tab;
+  document.querySelectorAll('#view-more .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['analytics','settings','share'].forEach(t=>{
+    const el=document.getElementById('more-tab-'+t);
+    if(el) el.style.display=t===tab?'block':'none';
+  });
+  if(tab==='analytics') renderAnalytics();
+  if(tab==='settings') renderSettingsPage();
+  if(tab==='share') renderSharePage();
+}
+
+function renderMoreContent(){
+  switchMoreTab(currentMoreTab,document.querySelector('#view-more .tabs .tab-btn.active')||document.querySelector('#view-more .tabs .tab-btn'));
+}
+
+// ══════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  const label=isLight?'🌙':'☀️';
+  document.querySelectorAll('#theme-btn,#theme-btn2').forEach(b=>{if(b)b.textContent=label});
+  settings.theme=isLight?'light':'dark';
+  saveSettings(settings);
+  renderWeeklyChart();
+}
+function applyTheme(){
+  if(settings.theme==='light'){document.body.classList.add('light');document.querySelectorAll('#theme-btn,#theme-btn2').forEach(b=>{if(b)b.textContent='🌙'});}
+}
+
+// ══════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════
+function getShiftInfo(now){
+  const h=now.getHours(),m=now.getMinutes();
+  const total=h*60+m;
+  const dayStart=8*60+30,dayEnd=20*60+30;
+  if(total>=dayStart&&total<dayEnd){
+    return{shift:'day',remain:dayEnd-total,label:'🌅 กะเช้า',cls:'shift-day'};
+  } else {
+    const remain=total>=dayEnd?(24*60-total+dayStart):(dayStart-total);
+    return{shift:'night',remain,label:'🌙 กะดึก',cls:'shift-night'};
+  }
+}
+function pad(n){return String(n).padStart(2,'0')}
+(function startClock(){
+  function tick(){
+    const now=new Date();
+    const si=getShiftInfo(now);
+    const timeStr=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const dateStr=thaiDate(now);
+    const rh=Math.floor(si.remain/60),rm=si.remain%60;
+    const remainStr=`${rh}ชม. ${pad(rm)}นาที`;
+    // Dashboard clock
+    ['clock-time','pm-clock-time'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=timeStr});
+    ['clock-date','pm-clock-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=dateStr});
+    ['clock-shift-badge','pm-shift-badge'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){el.textContent=si.label;el.className='shift-badge '+si.cls;}
+    });
+    ['clock-remain','pm-clock-remain'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=remainStr});
+    // dash badges
+    const db=document.getElementById('dash-shift-badge');
+    const dr=document.getElementById('dash-shift-remain');
+    if(db){db.textContent=si.label;db.className='shift-badge '+si.cls;db.style.fontSize='10px';}
+    if(dr) dr.textContent=`สิ้นกะใน ${remainStr}`;
+    // warn
+    const pending=MACHINES.filter(m=>{
+      const d=document.getElementById('pm-date-input')?.value||today();
+      return!getShiftRecordsForDate(m.id,d).some(r=>r.shift===si.shift);
+    }).length;
+    ['clock-warn','pm-clock-warn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el){
+        if(si.remain<=60&&pending>0){el.classList.add('show');el.querySelector('span').textContent=`ใกล้สิ้น${si.label} — ยังไม่ PM อีก ${pending} เครื่อง!`}
+        else el.classList.remove('show');
+      }
+    });
+  }
+  tick();setInterval(tick,1000);
+})();
+
+// ══════════════════════════════════════════
+// DATA HELPERS
+// ══════════════════════════════════════════
+function getShiftRecordsForDate(machineId,date){return pmRecords.filter(r=>r.machineId===machineId&&r.date===date)}
+function getMachineOpenIssues(machineId){return issues.filter(i=>i.machineId===machineId&&i.status!=='closed')}
+function getMonthRecordsForMachine(machineId,ym){return pmRecords.filter(r=>r.machineId===machineId&&r.date.startsWith(ym))}
+function daysSinceLastPM(machineId){
+  const recs=pmRecords.filter(r=>r.machineId===machineId);
+  if(!recs.length)return null;
+  const last=recs.sort((a,b)=>b.date.localeCompare(a.date))[0];
+  return Math.floor((parseLocalDate(today())-parseLocalDate(last.date))/864e5);
+}
+function daysSinceTag(machineId){
+  const days=daysSinceLastPM(machineId);
+  const cycle=pmCycles[machineId]||30;
+  if(days===null)return`<span class="days-since days-over">ไม่มีประวัติ</span>`;
+  if(days===0)return`<span class="days-since days-today">✓ วันนี้</span>`;
+  const cls=days>=cycle?'days-over':(days>=cycle*0.8?'days-warn':'days-ok');
+  return`<span class="days-since ${cls}">📅 ${days}วันที่แล้ว</span>`;
+}
+function isOverdue(machineId){
+  const days=daysSinceLastPM(machineId);
+  if(days===null)return true;
+  return days>=(pmCycles[machineId]||30);
+}
+
+// ══════════════════════════════════════════
+// PM GRID
+// ══════════════════════════════════════════
+function setPMFilter(f,el){
+  pmStatusFilter=f;
+  document.querySelectorAll('#pm-filter-pills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderPMGrid();
+}
+function filterMachines(v){searchTerm=v.toLowerCase();renderPMGrid()}
+
+function renderPMGrid(){
+  const grid=document.getElementById('machine-pm-grid');
+  if(!grid)return;
+  const d=document.getElementById('pm-date-input')?.value||today();
+  const ym=document.getElementById('pm-month-filter')?.value||d.slice(0,7);
+  let dayCount=0,nightCount=0;
+  MACHINES.forEach(m=>{
+    const recs=getShiftRecordsForDate(m.id,d);
+    if(recs.some(r=>r.shift==='day'))dayCount++;
+    if(recs.some(r=>r.shift==='night'))nightCount++;
+  });
+  document.getElementById('pm-day-count').textContent=`🌅 ${dayCount}`;
+  document.getElementById('pm-night-count').textContent=`🌙 ${nightCount}`;
+  renderPMPendingSummary(ym);
+
+  const machines=MACHINES.filter(m=>{
+    if(searchTerm&&!m.name.toLowerCase().includes(searchTerm))return false;
+    const recs=getShiftRecordsForDate(m.id,d);
+    const hasDay=recs.some(r=>r.shift==='day');
+    const hasNight=recs.some(r=>r.shift==='night');
+    const hasIssue=getMachineOpenIssues(m.id).length>0;
+    if(pmStatusFilter==='day'&&!hasDay)return false;
+    if(pmStatusFilter==='night'&&!hasNight)return false;
+    if(pmStatusFilter==='both'&&!(hasDay&&hasNight))return false;
+    if(pmStatusFilter==='pending'&&(hasDay||hasNight))return false;
+    if(pmStatusFilter==='issue'&&!hasIssue)return false;
+    if(pmStatusFilter==='overdue'&&!isOverdue(m.id))return false;
+    return true;
+  });
+
+  if(!machines.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:span 2"><div class="empty-icon">🔍</div><div class="empty-text">ไม่พบเครื่อง</div></div>`;
+    return;
+  }
+
+  grid.innerHTML=machines.map(m=>{
+    const recs=getShiftRecordsForDate(m.id,d);
+    const hasDay=recs.some(r=>r.shift==='day');
+    const hasNight=recs.some(r=>r.shift==='night');
+    const hasBoth=hasDay&&hasNight;
+    const openIssues=getMachineOpenIssues(m.id);
+    const hasIssue=openIssues.length>0;
+    const monthRecs=getMonthRecordsForMachine(m.id,ym);
+    const pmThisMonth=monthRecs.length>0;
+    const pmDoneToday=hasDay||hasNight;
+    const overdue=isOverdue(m.id)&&!pmDoneToday;
+    let cls=hasBoth?'pm-both':(hasDay?'pm-day':(hasNight?'pm-night':(hasIssue?'has-issue':'')));
+    if(overdue)cls+=' overdue-card';
+    let tags='';
+    if(hasDay)tags+=`<span class="mtag mtag-day">🌅 เช้า</span>`;
+    if(hasNight)tags+=`<span class="mtag mtag-night">🌙 ดึก</span>`;
+    if(!pmDoneToday){
+      if(pmThisMonth)tags+=`<span class="mtag" style="background:rgba(200,169,110,.15);color:var(--accent3)">✓ เดือนนี้</span>`;
+      else tags+=hasIssue?`<span class="mtag mtag-issue">⚠</span>`:`<span class="mtag mtag-pending">รอ PM</span>`;
+    }
+    const monthCount=monthRecs.length;
+    const countTag=monthCount>0?`<span style="font-size:9px;color:var(--muted);font-family:var(--mono)">${monthCount}ครั้ง</span>`:'';
+    let badge=hasIssue?`<div class="issue-dot">${openIssues.length}</div>`:'';
+    if(overdue)badge+=`<div class="overdue-tag">เกินรอบ</div>`;
+    return`<div class="machine-card ${cls}" data-machine-id="${m.id}"
+      onclick="batchMode?toggleBatchSelect(${m.id},this):openPMModal(${m.id})">
+      ${badge}
+      <input type="checkbox" class="batch-chk" onclick="event.stopPropagation();toggleBatchSelect(${m.id},this.closest('.machine-card'))">
+      <div class="mnum">#${String(m.id).padStart(2,'0')} · ${m.model}</div>
+      <div class="mname">${m.name}</div>
+      <div class="mtags">${tags}${countTag}</div>
+      ${daysSinceTag(m.id)}
+    </div>`;
+  }).join('');
+}
+
+function onPMMonthFilter(ym){
+  if(ym){const inp=document.getElementById('pm-date-input');if(inp)inp.value=ym+'-01';}
+  renderPMGrid();
+}
+
+function renderPMPendingSummary(ym){
+  const wrap=document.getElementById('pm-pending-list-wrap');
+  const countEl=document.getElementById('pm-pending-count');
+  if(!wrap)return;
+  const monthRecs=pmRecords.filter(r=>r.date.startsWith(ym));
+  const doneMachines=new Set(monthRecs.map(r=>r.machineId));
+  const pending=MACHINES.filter(m=>!doneMachines.has(m.id));
+  if(countEl)countEl.textContent=pending.length>0?`⏳ ยังไม่ PM ${pending.length} เครื่อง`:'';
+  if(!pending.length){wrap.innerHTML='';return}
+  wrap.innerHTML=`<div class="pending-alert">
+    <div class="pending-alert-title">⏳ ยังไม่ได้ PM เดือนนี้ (${pending.length} เครื่อง)</div>
+    <div class="pending-chips">${pending.map(m=>`<span class="pending-chip${isOverdue(m.id)?' overdue-chip':''}" onclick="openPMModal(${m.id})">${isOverdue(m.id)?'⏰ ':''}${m.name}</span>`).join('')}</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// PM MODAL
+// ══════════════════════════════════════════
+function openPMModal(machineId){
+  currentMachineId=machineId;
+  const m=MACHINES.find(x=>x.id===machineId);
+  document.getElementById('modal-pm-machine-name').textContent=m.name;
+  const d=document.getElementById('pm-date-input')?.value||today();
+  document.getElementById('pm-entry-date').value=d;
+  document.getElementById('pm-entry-tech').value=settings.userName||'';
+  document.getElementById('pm-entry-note').value='';
+  document.getElementById('pm-entry-has-issue').value='no';
+  document.getElementById('pm-issue-section').style.display='none';
+  selectShift('day');
+  const cl=document.getElementById('pm-checklist');
+  cl.innerHTML=PM_CHECKLIST.map((item,i)=>`
+    <label class="chk-item" id="chk-wrap-${i}">
+      <input type="checkbox" id="chk-${i}" onchange="updateChkCounter()">
+      <span>${item}</span>
+    </label>`).join('');
+  updateChkCounter();
+  openModal('modal-pm');
+}
+function updateChkCounter(){
+  const checked=PM_CHECKLIST.filter((_,i)=>document.getElementById(`chk-${i}`)?.checked).length;
+  const el=document.getElementById('chk-count-label');
+  if(el)el.textContent=`(${checked}/${PM_CHECKLIST.length})`;
+  PM_CHECKLIST.forEach((_,i)=>{
+    const wrap=document.getElementById(`chk-wrap-${i}`);
+    const cb=document.getElementById(`chk-${i}`);
+    if(wrap&&cb) wrap.classList.toggle('checked',cb.checked);
+  });
+}
+
+function selectShift(s){
+  selectedShift=s;
+  document.getElementById('opt-day').className='shift-opt'+(s==='day'?' sel-day':'');
+  document.getElementById('opt-night').className='shift-opt'+(s==='night'?' sel-night':'');
+}
+function toggleIssueSection(v){
+  document.getElementById('pm-issue-section').style.display=v==='yes'?'block':'none';
+}
+
+function savePMEntry(){
+  const machineId=currentMachineId;
+  const date=document.getElementById('pm-entry-date').value;
+  const tech=document.getElementById('pm-entry-tech').value.trim()||'ไม่ระบุ';
+  const note=document.getElementById('pm-entry-note').value.trim();
+  const shift=selectedShift;
+  const checkedItems=PM_CHECKLIST.filter((_,i)=>document.getElementById(`chk-${i}`)?.checked);
+  const hasIssue=document.getElementById('pm-entry-has-issue').value==='yes';
+  if(!date){toast('กรุณาระบุวันที่','error');return}
+
+  const ym=date.slice(0,7);
+  const monthRecs=getMonthRecordsForMachine(machineId,ym);
+  const sameShiftThisMonth=monthRecs.filter(r=>r.shift===shift&&r.date!==date);
+  if(sameShiftThisMonth.length>0){
+    const last=sameShiftThisMonth.sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const mName=MACHINES.find(m=>m.id===machineId)?.name;
+    if(!confirm(`⚠️ ${mName} ได้ทำ PM ${shiftLabel(shift)} ไปแล้วในเดือนนี้\n(${fmt(last.date)} โดย ${last.tech})\n\nยืนยันบันทึกซ้ำ?`))return;
+  }
+
+  const existIdx=pmRecords.findIndex(r=>r.machineId===machineId&&r.date===date&&r.shift===shift);
+  const record={
+    id:existIdx>=0?pmRecords[existIdx].id:uid(),
+    machineId,date,shift,tech,note,
+    checklist:checkedItems,checkedCount:checkedItems.length,totalItems:PM_CHECKLIST.length,ts:Date.now()
+  };
+  if(existIdx>=0)pmRecords[existIdx]=record;else pmRecords.push(record);
+  savePMRecord(record);
+
+  if(hasIssue){
+    const iss={
+      id:uid(),machineId,machineName:MACHINES.find(m=>m.id===machineId).name,
+      type:document.getElementById('pm-issue-type').value,
+      severity:parseInt(document.getElementById('pm-issue-severity').value),
+      desc:document.getElementById('pm-issue-desc').value.trim()||'พบปัญหาจากการทำ PM',
+      status:'open',date,assignee:tech,shift,ts:Date.now()
+    };
+    issues.push(iss);saveIssueRecord(iss);
+  }
+  if(settings.userName!==tech){settings.userName=tech;saveSettings(settings)}
+  closeModal('modal-pm');
+  renderPMGrid();updateBadges();
+  toast(`บันทึก PM ${MACHINES.find(m=>m.id===machineId).name} ${shiftLabel(shift)} สำเร็จ`);
+}
+
+// ══════════════════════════════════════════
+// MACHINE DETAIL MODAL
+// ══════════════════════════════════════════
+function openMachineDetail(machineId){
+  currentMachineId=machineId;
+  const m=MACHINES.find(x=>x.id===machineId);
+  document.getElementById('modal-machine-title').textContent=`⚙️ ${m.name}`;
+  switchMachineTab('pm',document.querySelector('#modal-machine .tab-btn'));
+  openModal('modal-machine');
+}
+function switchMachineTab(tab,btn){
+  document.querySelectorAll('#modal-machine .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('machine-tab-pm').style.display=tab==='pm'?'block':'none';
+  document.getElementById('machine-tab-issues').style.display=tab==='issues'?'block':'none';
+  if(tab==='pm')renderMachineTabPM(currentMachineId);
+  if(tab==='issues')renderMachineTabIssues(currentMachineId);
+}
+function renderMachineTabPM(machineId){
+  const el=document.getElementById('machine-tab-pm');
+  const recs=pmRecords.filter(r=>r.machineId===machineId).sort((a,b)=>{const dc=b.date.localeCompare(a.date);return dc!==0?dc:b.ts-a.ts;}).slice(0,10);
+  if(!recs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">ยังไม่มีประวัติ PM</div></div>';return}
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${recs.map(r=>`
+    <div class="hist-item">
+      <div class="hist-icon">${r.shift==='night'?'🌙':'🌅'}</div>
+      <div class="hist-body">
+        <div class="hist-machine">${fmt(r.date)} · ${shiftLabel(r.shift)}</div>
+        <div class="hist-meta">👤 ${r.tech||'—'} · ✓ ${r.checkedCount||0}/${r.totalItems||10} รายการ</div>
+        ${r.note?`<div class="hist-note">📝 ${r.note}</div>`:''}
+      </div>
+      <button class="icon-btn" style="width:32px;height:32px;font-size:13px;flex-shrink:0;color:var(--danger)" onclick="promptDeletePM('${r.id}')">🗑</button>
+    </div>`).join('')}</div>`;
+}
+function renderMachineTabIssues(machineId){
+  const el=document.getElementById('machine-tab-issues');
+  const machIssues=issues.filter(i=>i.machineId===machineId).sort((a,b)=>b.ts-a.ts);
+  if(!machIssues.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎉</div><div class="empty-text">ไม่มีปัญหา</div></div>';return}
+  el.innerHTML=machIssues.map(i=>renderIssueCard(i)).join('');
+}
+function openPMFromDetail(){closeModal('modal-machine');openPMModal(currentMachineId)}
+function openIssueFromDetail(){closeModal('modal-machine');openIssueModal(currentMachineId)}
+
+// ══════════════════════════════════════════
+// DELETE PM
+// ══════════════════════════════════════════
+function promptDeletePM(pmId){
+  const rec=pmRecords.find(r=>r.id===pmId);if(!rec)return;
+  pendingDeleteId=pmId;
+  const m=MACHINES.find(x=>x.id===rec.machineId);
+  document.getElementById('delete-pm-details').innerHTML=`
+    <div>เครื่อง: <strong>${m?.name}</strong></div>
+    <div>วันที่: <strong>${fmt(rec.date)}</strong></div>
+    <div>กะ: <strong>${shiftLabel(rec.shift||'day')}</strong></div>
+    <div>ช่าง: <strong>${rec.tech}</strong></div>`;
+  openModal('modal-delete-pm');
+}
+function executeDeletePM(){
+  if(!pendingDeleteId)return;
+  deletePMRecord(pendingDeleteId);
+  pmRecords=pmRecords.filter(r=>r.id!==pendingDeleteId);
+  pendingDeleteId=null;
+  closeModal('modal-delete-pm');
+  closeModal('modal-machine');
+  renderHistory();renderPMGrid();updateBadges();
+  toast('ลบบันทึก PM แล้ว');
+}
+
+// ══════════════════════════════════════════
+// ISSUES
+// ══════════════════════════════════════════
+function openIssueModal(machineId=null){
+  editIssueId=null;
+  document.getElementById('modal-issue-title').textContent='➕ เพิ่มปัญหา';
+  const sel=document.getElementById('issue-machine');
+  sel.innerHTML=MACHINES.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(machineId)sel.value=machineId;
+  document.getElementById('issue-date').value=today();
+  document.getElementById('issue-desc').value='';
+  document.getElementById('issue-status-select').value='open';
+  document.getElementById('issue-assignee').value=settings.userName||'';
+  openModal('modal-issue');
+}
+function openIssueEditModal(issueId){
+  editIssueId=issueId;
+  const iss=issues.find(i=>i.id===issueId);if(!iss)return;
+  document.getElementById('modal-issue-title').textContent='✏️ แก้ไขปัญหา';
+  const sel=document.getElementById('issue-machine');
+  sel.innerHTML=MACHINES.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value=iss.machineId;
+  document.getElementById('issue-date').value=iss.date;
+  document.getElementById('issue-type').value=iss.type;
+  document.getElementById('issue-severity').value=iss.severity;
+  document.getElementById('issue-desc').value=iss.desc;
+  document.getElementById('issue-status-select').value=iss.status;
+  document.getElementById('issue-assignee').value=iss.assignee||'';
+  openModal('modal-issue');
+}
+function saveIssue(){
+  const machineId=parseInt(document.getElementById('issue-machine').value);
+  const m=MACHINES.find(x=>x.id===machineId);
+  const iss={
+    id:editIssueId||uid(),machineId,machineName:m.name,
+    type:document.getElementById('issue-type').value,
+    severity:parseInt(document.getElementById('issue-severity').value),
+    desc:document.getElementById('issue-desc').value.trim(),
+    status:document.getElementById('issue-status-select').value,
+    date:document.getElementById('issue-date').value,
+    assignee:document.getElementById('issue-assignee').value.trim(),ts:Date.now()
+  };
+  if(!iss.desc){toast('กรุณากรอกรายละเอียดปัญหา','error');return}
+  if(editIssueId){const idx=issues.findIndex(i=>i.id===editIssueId);if(idx>=0)issues[idx]=iss}
+  else issues.push(iss);
+  saveIssueRecord(iss);
+  closeModal('modal-issue');
+  renderIssuesCards();updateBadges();
+  toast(editIssueId?'อัพเดทปัญหาแล้ว':'บันทึกปัญหาใหม่แล้ว');
+}
+function deleteIssue(id){
+  if(!confirm('ยืนยันลบรายการปัญหานี้?'))return;
+  deleteIssueRecord(id);
+  issues=issues.filter(i=>i.id!==id);
+  renderIssuesCards();updateBadges();
+  toast('ลบรายการแล้ว');
+}
+function quickCloseIssue(id){
+  const idx=issues.findIndex(i=>i.id===id);if(idx<0)return;
+  issues[idx].status='closed';
+  saveIssueRecord(issues[idx]);
+  renderIssuesCards();renderRecentIssues();updateBadges();renderCriticalBanner();
+  toast('ปิดปัญหาแล้ว ✅');
+}
+function filterIssues(s,btn){
+  issueFilterStatus=s;
+  document.querySelectorAll('#view-issues .tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderIssuesCards();
+}
+function populateIssueMachineFilter(){
+  const sel=document.getElementById('issue-machine-filter');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">ทุกเครื่อง</option>'+MACHINES.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value=cur;
+}
+
+function renderIssueCard(i){
+  const sevLabel=['','เล็กน้อย','ปานกลาง','รุนแรง','วิกฤต'];
+  const statusBadge={open:'<span class="badge badge-danger">เปิดอยู่</span>','in-progress':'<span class="badge badge-warn">กำลังแก้</span>',closed:'<span class="badge badge-success">แก้แล้ว</span>'};
+  return`<div class="issue-card">
+    <div class="issue-card-header">
+      <div>
+        <div class="issue-machine">${i.machineName}</div>
+        <div class="issue-type"><span class="sev-dot sev-${i.severity}"></span>${i.type} · ${sevLabel[i.severity]} · ${fmt(i.date)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        ${statusBadge[i.status]||''}
+        <div style="display:flex;gap:4px;margin-top:2px">
+          ${i.status!=='closed'?`<button class="btn btn-success btn-sm" style="padding:4px 8px;font-size:11px" onclick="quickCloseIssue('${i.id}')">✓</button>`:''}
+          <button class="btn btn-secondary btn-sm" style="padding:4px 8px;font-size:11px" onclick="openIssueEditModal('${i.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteIssue('${i.id}')">🗑</button>
+        </div>
+      </div>
+    </div>
+    <div class="issue-desc">${i.desc}</div>
+    ${i.assignee?`<div style="font-size:11px;color:var(--muted);margin-top:4px">👤 ${i.assignee}</div>`:''}
+  </div>`;
+}
+
+function renderIssuesCards(){
+  const el=document.getElementById('issues-list');if(!el)return;
+  const mf=document.getElementById('issue-machine-filter')?.value||'all';
+  let filtered=issues.filter(i=>{
+    if(issueFilterStatus!=='all'&&i.status!==issueFilterStatus)return false;
+    if(mf!=='all'&&i.machineId!==parseInt(mf))return false;
+    return true;
+  }).sort((a,b)=>b.ts-a.ts);
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎉</div><div class="empty-text">ไม่พบรายการปัญหา</div></div>';return}
+  el.innerHTML=filtered.map(i=>renderIssueCard(i)).join('');
+}
+
+function updateBadges(){
+  const open=issues.filter(i=>i.status!=='closed').length;
+  const b=document.getElementById('issue-badge');
+  if(b){b.textContent=open;b.style.display=open>0?'inline-block':'none'}
+}
+
+// ══════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════
+function populateHistoryFilter(){
+  const sel=document.getElementById('hist-machine-filter');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">ทุกเครื่อง</option>'+MACHINES.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value=cur;
+}
+function renderHistory(){
+  const el=document.getElementById('history-list');if(!el)return;
+  const mf=document.getElementById('hist-machine-filter')?.value||'all';
+  const mth=document.getElementById('hist-month')?.value||today().slice(0,7);
+  let filtered=pmRecords.filter(r=>{
+    if(mf!=='all'&&r.machineId!==parseInt(mf))return false;
+    if(mth&&!r.date.startsWith(mth))return false;
+    return true;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.ts-a.ts);
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">ไม่พบประวัติ</div><div class="empty-sub">ลองเปลี่ยนตัวกรอง</div></div>';return}
+  el.innerHTML=filtered.map(r=>`
+    <div class="hist-item">
+      <div class="hist-icon">${r.shift==='night'?'🌙':'🌅'}</div>
+      <div class="hist-body">
+        <div class="hist-machine">${r.machineName||MACHINES.find(m=>m.id===r.machineId)?.name||'?'}</div>
+        <div class="hist-meta">${fmt(r.date)} · ${shiftLabel(r.shift)} · 👤 ${r.tech||'—'} · ✓ ${r.checkedCount||0}/${r.totalItems||10}</div>
+        ${r.note?`<div class="hist-note">📝 ${r.note}</div>`:''}
+      </div>
+      <button class="icon-btn" style="width:32px;height:32px;font-size:13px;flex-shrink:0;color:var(--danger)" onclick="promptDeletePM('${r.id}')">🗑</button>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard(){
+  const d=today();const ym=d.slice(0,7);
+  const todayRecs=pmRecords.filter(r=>r.date===d);
+  const uniqueDay=new Set(todayRecs.filter(r=>r.shift==='day').map(r=>r.machineId)).size;
+  const uniqueNight=new Set(todayRecs.filter(r=>r.shift==='night').map(r=>r.machineId)).size;
+  const uniqueTotal=new Set(todayRecs.map(r=>r.machineId)).size;
+  const openCount=issues.filter(i=>i.status!=='closed').length;
+  const overdueCount=MACHINES.filter(m=>isOverdue(m.id)).length;
+  document.getElementById('stat-today').textContent=uniqueTotal;
+  document.getElementById('stat-today-pct').textContent=`/ ${MACHINES.length} เครื่อง (${Math.round(uniqueTotal/MACHINES.length*100)}%)`;
+  document.getElementById('stat-day-shift').textContent=uniqueDay;
+  document.getElementById('stat-night-shift').textContent=uniqueNight;
+  document.getElementById('stat-overdue').textContent=overdueCount;
+  document.getElementById('stat-open-issues').textContent=openCount;
+  const pmBtn=document.getElementById('dash-pm-btn');
+  if(pmBtn){
+    const remaining=MACHINES.length-uniqueTotal;
+    pmBtn.textContent=remaining>0?`➕ บันทึก PM (${uniqueTotal}/${MACHINES.length})`:`✅ PM ครบวันนี้แล้ว`;
+    pmBtn.className=remaining===0?'btn btn-success btn-full':'btn btn-primary btn-full';
+  }
+  renderCriticalBanner();
+  renderMonthProgress(ym);
+  renderDashPendingAlert(ym);
+  renderRecentIssues();
+  renderWeeklyChart();
+  updateBadges();
+}
+
+function renderCriticalBanner(){
+  const wrap=document.getElementById('critical-banner-wrap');if(!wrap)return;
+  const criticals=issues.filter(i=>i.severity===4&&i.status!=='closed');
+  if(!criticals.length){wrap.innerHTML='';return}
+  wrap.innerHTML=`<div class="critical-banner" style="margin:0 14px 10px">
+    <div class="critical-title">🚨 ปัญหาวิกฤต! ${criticals.length} รายการ</div>
+    <div class="critical-tags">${criticals.map(i=>`<span class="critical-tag" onclick="showView('issues')">${i.machineName} — ${i.type}</span>`).join('')}</div>
+  </div>`;
+}
+function renderMonthProgress(ym){
+  const done=new Set(pmRecords.filter(r=>r.date.startsWith(ym)).map(r=>r.machineId)).size;
+  const total=MACHINES.length;const pct=Math.round(done/total*100);
+  const fill=document.getElementById('month-prog-fill');
+  if(fill)fill.style.width=pct+'%';
+  const txt=document.getElementById('month-prog-text');if(txt)txt.textContent=`${done}/${total} (${pct}%)`;
+  const done_el=document.getElementById('month-prog-done');if(done_el)done_el.textContent=`PM แล้ว ${done} เครื่อง`;
+  const left_el=document.getElementById('month-prog-left');
+  if(left_el){const left=total-done;left_el.textContent=left>0?`เหลืออีก ${left} เครื่อง`:'✅ ครบทุกเครื่องแล้ว';left_el.style.color=left>0?'var(--danger)':'var(--success)';}
+}
+function renderDashPendingAlert(ym){
+  const wrap=document.getElementById('dash-pending-wrap');if(!wrap)return;
+  const doneMachines=new Set(pmRecords.filter(r=>r.date.startsWith(ym)).map(r=>r.machineId));
+  const pending=MACHINES.filter(m=>!doneMachines.has(m.id));
+  if(!pending.length){wrap.innerHTML='';return}
+  wrap.innerHTML=`<div class="pending-alert">
+    <div class="pending-alert-title">⏳ ยังไม่ PM เดือนนี้ — ${pending.length} เครื่อง</div>
+    <div class="pending-chips">${pending.map(m=>{const ov=isOverdue(m.id);return`<span class="pending-chip${ov?' overdue-chip':''}" onclick="showView('pm')">${ov?'⏰ ':''}${m.name}</span>`}).join('')}</div>
+  </div>`;
+}
+function renderRecentIssues(){
+  const el=document.getElementById('recent-issues-list');if(!el)return;
+  const open=issues.filter(i=>i.status!=='closed').sort((a,b)=>b.severity-a.severity||b.ts-a.ts).slice(0,4);
+  if(!open.length){el.innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon">🎉</div><div class="empty-text">ไม่มีปัญหาค้างอยู่</div></div>';return}
+  const sc=['','var(--success)','var(--warn)','#f97316','var(--danger)'];
+  el.innerHTML=`<div class="timeline">${open.map(i=>`
+    <div class="tl-item">
+      <div class="tl-dot" style="border-color:${sc[i.severity]};color:${sc[i.severity]}">${i.severity}</div>
+      <div class="tl-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+          <div><div class="tl-title">${i.machineName} — ${i.type}</div><div class="tl-meta">${fmt(i.date)}</div></div>
+          <button class="btn btn-success btn-sm" style="padding:3px 8px;font-size:10px;flex-shrink:0" onclick="quickCloseIssue('${i.id}')">✓ แก้แล้ว</button>
+        </div>
+        <div class="tl-note">${i.desc}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+// ══════════════════════════════════════════
+// WEEKLY CHART
+// ══════════════════════════════════════════
+function renderWeeklyChart(){
+  const labels=[],dayData=[],nightData=[];
+  for(let i=6;i>=0;i--){
+    const dt=new Date();dt.setDate(dt.getDate()-i);
+    const k=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    labels.push(dt.toLocaleDateString('th-TH',{weekday:'short',day:'numeric'}));
+    dayData.push(new Set(pmRecords.filter(r=>r.date===k&&r.shift==='day').map(r=>r.machineId)).size);
+    nightData.push(new Set(pmRecords.filter(r=>r.date===k&&r.shift==='night').map(r=>r.machineId)).size);
+  }
+  destroyChart('chartWeekly');
+  const ctx=document.getElementById('chartWeekly');if(!ctx)return;
+  const mc=chartMuted(),gc=chartGrid();
+  charts['chartWeekly']=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'กะเช้า',data:dayData,backgroundColor:'rgba(251,191,36,.75)',borderRadius:4},
+      {label:'กะดึก',data:nightData,backgroundColor:'rgba(129,140,248,.7)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:mc,font:{size:10}}}},scales:{x:{ticks:{color:mc,font:{size:10}},grid:{display:false}},y:{ticks:{color:mc,stepSize:1},grid:{color:gc}}}}
+  });
+}
+
+// ══════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════
+function renderAnalytics(){
+  const periodVal=document.getElementById('analytics-period')?.value||'30';
+  let fRecs=pmRecords;
+  if(periodVal!=='all'){
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-parseInt(periodVal));
+    const cutStr=`${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
+    fRecs=pmRecords.filter(r=>r.date>=cutStr);
+  }
+  const days=periodVal==='all'?30:parseInt(periodVal);
+  const avg=Math.round(fRecs.length/days*10)/10;
+  const avgEl=document.getElementById('ana-avg');if(avgEl)avgEl.textContent=avg||0;
+
+  const machineCounts={};fRecs.forEach(r=>{machineCounts[r.machineId]=(machineCounts[r.machineId]||0)+1});
+  const topPMId=Object.keys(machineCounts).sort((a,b)=>machineCounts[b]-machineCounts[a])[0];
+  const topPMEl=document.getElementById('ana-top-pm');
+  if(topPMEl)topPMEl.textContent=topPMId?MACHINES.find(m=>m.id===parseInt(topPMId))?.name||'—':'—';
+
+  renderComplianceChart(fRecs);
+  renderMachineBarChart(fRecs);
+  renderMonthlyChart(fRecs);
+  renderCompletionBars(fRecs);
+}
+
+function renderComplianceChart(fRecs){
+  const total=MACHINES.length;
+  const monthMap={};
+  fRecs.forEach(r=>{const m=r.date.slice(0,7);if(!monthMap[m])monthMap[m]=new Set();monthMap[m].add(r.machineId)});
+  const months=Object.keys(monthMap).sort().slice(-8);
+  destroyChart('chartCompliance');
+  const ctx=document.getElementById('chartCompliance');if(!ctx||!months.length)return;
+  const rates=months.map(m=>Math.round(monthMap[m].size/total*100));
+  const mc=chartMuted(),gc=chartGrid();
+  charts['chartCompliance']=new Chart(ctx,{
+    type:'line',
+    data:{labels:months.map(m=>{const p=m.split('-');return`${p[1]}/${p[0].slice(2)}`}),
+      datasets:[{label:'Compliance %',data:rates,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#22c55e',pointBorderColor:'#fff',pointBorderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:mc,font:{size:10}},grid:{display:false}},y:{min:0,max:100,ticks:{color:mc,font:{size:10},callback:v=>v+'%'},grid:{color:gc}}}}
+  });
+}
+
+function renderMachineBarChart(fRecs){
+  destroyChart('chartMachineBar');
+  const ctx=document.getElementById('chartMachineBar');if(!ctx)return;
+  const counts=MACHINES.map(m=>fRecs.filter(r=>r.machineId===m.id).length);
+  const mc=chartMuted(),gc=chartGrid();
+  charts['chartMachineBar']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:MACHINES.map(m=>m.name.replace('Hanger ','')),
+      datasets:[{data:counts,backgroundColor:'rgba(245,166,35,.7)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:mc,font:{size:9}},grid:{color:gc}},y:{ticks:{color:mc,font:{size:9}},grid:{display:false}}}}
+  });
+}
+
+function renderMonthlyChart(fRecs){
+  destroyChart('chartMonthly');
+  const ctx=document.getElementById('chartMonthly');if(!ctx)return;
+  const monthMap={};
+  fRecs.forEach(r=>{
+    const m=r.date.slice(0,7);
+    if(!monthMap[m])monthMap[m]={day:0,night:0};
+    if(r.shift==='day')monthMap[m].day++;else monthMap[m].night++;
+  });
+  const months=Object.keys(monthMap).sort().slice(-8);
+  const mc=chartMuted(),gc=chartGrid();
+  charts['chartMonthly']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:months.map(m=>{const p=m.split('-');return`${p[1]}/${p[0].slice(2)}`}),
+      datasets:[
+        {label:'กะเช้า',data:months.map(m=>monthMap[m]?.day||0),backgroundColor:'rgba(251,191,36,.75)',borderRadius:3},
+        {label:'กะดึก',data:months.map(m=>monthMap[m]?.night||0),backgroundColor:'rgba(129,140,248,.7)',borderRadius:3}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:mc,font:{size:10}}}},scales:{x:{ticks:{color:mc,font:{size:10}},grid:{display:false}},y:{ticks:{color:mc,font:{size:10}},grid:{color:gc}}}}
+  });
+}
+
+function renderCompletionBars(fRecs){
+  const el=document.getElementById('machine-completion-bars');if(!el)return;
+  const max=Math.max(1,...MACHINES.map(m=>fRecs.filter(r=>r.machineId===m.id).length));
+  el.innerHTML=MACHINES.map(m=>{
+    const count=fRecs.filter(r=>r.machineId===m.id).length;
+    const pct=Math.round(count/max*100);
+    const col=count===0?'var(--surface3)':count>=max*0.7?'var(--success)':count>=max*0.4?'var(--warn)':'var(--accent)';
+    return`<div style="display:flex;align-items:center;gap:8px">
+      <div style="width:60px;font-size:10px;color:var(--muted);text-align:right;flex-shrink:0">${m.name.replace('Hanger ','#')}</div>
+      <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div style="width:22px;font-size:10px;font-family:var(--mono);color:var(--text);text-align:right">${count}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function renderSettingsPage(){
+  const usn=document.getElementById('set-username');
+  if(usn)usn.value=settings.userName||'';
+  renderPMCycleSettings();
+  renderMachineSettings();
+}
+function autoSaveUserName(val){settings.userName=val;saveSettings(settings)}
+function renderPMCycleSettings(){
+  const grid=document.getElementById('pm-cycle-settings-grid');if(!grid)return;
+  grid.innerHTML=MACHINES.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:8px 10px">
+      <span style="font-size:12px;flex:1;font-weight:600">${m.name}</span>
+      <input type="number" class="form-control" style="width:70px;padding:7px 8px;font-size:12px" min="1" max="365"
+        value="${pmCycles[m.id]||30}" onchange="setPMCycle(${m.id},this.value)">
+      <span style="font-size:11px;color:var(--muted)">วัน</span>
+    </div>`).join('');
+}
+function setPMCycle(machineId,val){
+  const days=Math.max(1,Math.min(365,parseInt(val)||30));
+  pmCycles[machineId]=days;
+  savePMCycles();
+}
+function applyGlobalCycle(){
+  const val=parseInt(document.getElementById('global-cycle-input').value)||30;
+  MACHINES.forEach(m=>{pmCycles[m.id]=val});
+  savePMCycles();renderPMCycleSettings();
+  toast(`ตั้งรอบ PM ${val} วัน ให้ทุกเครื่องแล้ว`);
+}
+function savePMCycles(){saveMachines()}
+function renderMachineSettings(){
+  const el=document.getElementById('machines-settings-list');if(!el)return;
+  el.innerHTML=MACHINES.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${m.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${m.model}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openEditMachineModal(${m.id})">✏️</button>
+    </div>`).join('');
+}
+function openEditMachineModal(machineId){
+  const m=MACHINES.find(x=>x.id===machineId);if(!m)return;
+  document.getElementById('edit-machine-id').value=machineId;
+  document.getElementById('edit-machine-name').value=m.name;
+  document.getElementById('edit-machine-model').value=m.model;
+  openModal('modal-edit-machine');
+}
+function saveMachineEdit(){
+  const machineId=parseInt(document.getElementById('edit-machine-id').value);
+  const name=document.getElementById('edit-machine-name').value.trim();
+  const model=document.getElementById('edit-machine-model').value.trim();
+  if(!name){toast('กรุณากรอกชื่อเครื่อง','error');return}
+  const idx=MACHINES.findIndex(m=>m.id===machineId);
+  if(idx>=0){MACHINES[idx].name=name;MACHINES[idx].model=model;}
+  saveMachines();closeModal('modal-edit-machine');
+  renderMachineSettings();renderPMGrid();
+  toast('แก้ไขข้อมูลเครื่องแล้ว');
+}
+function addNewMachine(){
+  const newId=Math.max(0,...MACHINES.map(m=>m.id))+1;
+  MACHINES.push({id:newId,name:`Hanger ${String(newId).padStart(2,'0')}`,model:`HNG-${200+newId*5}`});
+  pmCycles[newId]=30;
+  saveMachines();renderMachineSettings();
+  toast('เพิ่มเครื่องใหม่แล้ว');
+}
+
+// ══════════════════════════════════════════
+// SHARE PAGE
+// ══════════════════════════════════════════
+function renderSharePage(){
+  const urlEl=document.getElementById('share-url-display');
+  const gsEl=document.getElementById('gs-url-display');
+  if(urlEl)urlEl.textContent=window.location.href.split('?')[0];
+  if(gsEl)gsEl.textContent=GS_URL;
+}
+function copyShareUrl(){
+  navigator.clipboard.writeText(window.location.href).then(()=>toast('คัดลอกลิงก์แล้ว ✅')).catch(()=>toast('ไม่สามารถคัดลอกได้','error'));
+}
+function exportCSV(type){
+  let csv='',filename='';
+  if(type==='pm'){
+    csv='ID,Machine,Date,Shift,Tech,CheckedCount,TotalItems,Note,Timestamp\n';
+    pmRecords.forEach(r=>{csv+=`"${r.id}","${r.machineName||''}","${r.date}","${r.shift}","${r.tech}","${r.checkedCount||0}","${r.totalItems||10}","${(r.note||'').replace(/"/g,'""')}","${r.ts}"\n`});
+    filename='pm_records.csv';
+  }else{
+    csv='ID,Machine,Type,Severity,Description,Status,Date,Assignee,Timestamp\n';
+    issues.forEach(i=>{csv+=`"${i.id}","${i.machineName}","${i.type}","${i.severity}","${i.desc.replace(/"/g,'""')}","${i.status}","${i.date}","${i.assignee||''}","${i.ts}"\n`});
+    filename='issues.csv';
+  }
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+  toast('Export สำเร็จ ✅');
+}
+
+// ══════════════════════════════════════════
+// BATCH PM
+// ══════════════════════════════════════════
+function toggleBatchMode(){
+  batchMode=!batchMode;
+  batchSelected.clear();
+  const grid=document.getElementById('machine-pm-grid');
+  const bar=document.getElementById('batch-bar');
+  const btn=document.getElementById('batch-toggle-btn');
+  if(grid)grid.classList.toggle('batch-mode',batchMode);
+  if(bar)bar.classList.toggle('show',batchMode);
+  if(btn){btn.textContent=batchMode?'✕':'☑️';btn.style.color=batchMode?'var(--danger)':'var(--muted)';}
+  updateBatchCount();
+}
+function toggleBatchSelect(machineId,card){
+  if(batchSelected.has(machineId)){batchSelected.delete(machineId);card.classList.remove('batch-selected')}
+  else{batchSelected.add(machineId);card.classList.add('batch-selected')}
+  updateBatchCount();
+}
+function updateBatchCount(){
+  const lbl=document.getElementById('batch-count-label');
+  if(lbl)lbl.textContent=`เลือก ${batchSelected.size} เครื่อง`;
+}
+function batchSelectAll(){
+  document.querySelectorAll('#machine-pm-grid .machine-card').forEach(c=>{
+    const id=parseInt(c.getAttribute('data-machine-id'));
+    batchSelected.add(id);c.classList.add('batch-selected');
+    const cb=c.querySelector('.batch-chk');if(cb)cb.checked=true;
+  });updateBatchCount();
+}
+function batchClear(){
+  batchSelected.clear();
+  document.querySelectorAll('#machine-pm-grid .machine-card').forEach(c=>{
+    c.classList.remove('batch-selected');
+    const cb=c.querySelector('.batch-chk');if(cb)cb.checked=false;
+  });updateBatchCount();
+}
+function selectBatchShift(s){
+  batchShift=s;
+  document.getElementById('batch-opt-day').className='shift-opt'+(s==='day'?' sel-day':'');
+  document.getElementById('batch-opt-night').className='shift-opt'+(s==='night'?' sel-night':'');
+}
+function openBatchPMModal(){
+  if(!batchSelected.size){toast('กรุณาเลือกเครื่องอย่างน้อย 1 เครื่อง','error');return}
+  const names=MACHINES.filter(m=>batchSelected.has(m.id)).map(m=>m.name).join(', ');
+  document.getElementById('batch-machine-list').textContent=names;
+  document.getElementById('batch-date').value=document.getElementById('pm-date-input')?.value||today();
+  document.getElementById('batch-tech').value=settings.userName||'';
+  document.getElementById('batch-note').value='';
+  selectBatchShift('day');
+  openModal('modal-batch-pm');
+}
+function saveBatchPM(){
+  const date=document.getElementById('batch-date').value;
+  const tech=document.getElementById('batch-tech').value.trim()||'ไม่ระบุ';
+  const note=document.getElementById('batch-note').value.trim();
+  if(!date){toast('กรุณาระบุวันที่','error');return}
+  let count=0;
+  batchSelected.forEach(machineId=>{
+    const existIdx=pmRecords.findIndex(r=>r.machineId===machineId&&r.date===date&&r.shift===batchShift);
+    const rec={id:existIdx>=0?pmRecords[existIdx].id:uid(),machineId,date,shift:batchShift,tech,note,checklist:[],checkedCount:0,totalItems:PM_CHECKLIST.length,ts:Date.now()};
+    if(existIdx>=0)pmRecords[existIdx]=rec;else pmRecords.push(rec);
+    savePMRecord(rec);count++;
+  });
+  if(settings.userName!==tech){settings.userName=tech;saveSettings(settings)}
+  closeModal('modal-batch-pm');
+  toggleBatchMode();
+  renderPMGrid();updateBadges();
+  toast(`บันทึก PM ${count} เครื่อง (${shiftLabel(batchShift)}) สำเร็จ`);
+}
+
+// ══════════════════════════════════════════
+// DATA SAVE FUNCTIONS
+// ══════════════════════════════════════════
+function savePMRecord(rec){
+  rec.machineName=MACHINES.find(m=>m.id===rec.machineId)?.name||'';
+  gsPost('savePM',rec);
+}
+function deletePMRecord(id){gsPost('deletePM',{id})}
+function saveIssueRecord(iss){gsPost('saveIssue',iss)}
+function deleteIssueRecord(id){gsPost('deleteIssue',{id})}
+function saveMachines(){
+  const payload=MACHINES.map(m=>({...m,pmCycleDays:pmCycles[m.id]||30}));
+  gsPost('saveMachines',payload);
+}
+function saveSettings(s){gsPost('saveSettings',s)}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function initData(){
+  const syncBtn=document.getElementById('sync-icon-btn');
+  if(syncBtn)syncBtn.style.animation='spin 1s linear infinite';
+
+  try{
+    const [pmData,issueData,machineData,settingData]=await Promise.all([
+      gsGet('getPM'),gsGet('getIssues'),gsGet('getMachines'),gsGet('getSettings'),
+    ]);
+
+    pmRecords=(pmData||[]).map(r=>({
+      ...r,machineId:Number(r.machineId),date:normalizeDate(r.date),
+      checkedCount:Number(r.checkedCount)||0,totalItems:Number(r.totalItems)||10,
+      ts:Number(r.ts)||0,
+      checklist:r.checklist?String(r.checklist).split(',').filter(Boolean):[],
+    }));
+    issues=(issueData||[]).map(i=>({
+      ...i,machineId:Number(i.machineId),date:normalizeDate(i.date),
+      severity:Number(i.severity)||1,ts:Number(i.ts)||0,
+    }));
+    if(machineData&&machineData.length){
+      MACHINES=machineData.map(m=>({
+        id:Number(m.id)||0,
+        name:String(m.name||m.machineName||`Hanger ${String(Number(m.id)).padStart(2,'0')}`).trim(),
+        model:String(m.model||m.machineModel||`HNG-${(Number(m.id)||1)*5}`).trim()
+      })).filter(m=>m.id>0);
+      if(!MACHINES.length)MACHINES=[...DEFAULT_MACHINES];
+      machineData.forEach(m=>{pmCycles[Number(m.id)]=Number(m.pmCycleDays)||30;});
+    }
+    if(settingData&&settingData.length){
+      settings={};settingData.forEach(r=>{if(r.key)settings[r.key]=r.value;});
+    }
+    console.log(`✅ โหลดสำเร็จ: PM ${pmRecords.length}, Issues ${issues.length}, Machines ${MACHINES.length}`);
+    toast(`โหลดข้อมูลสำเร็จ (PM ${pmRecords.length} รายการ)`);
+  }catch(e){
+    console.error('initData failed:',e);
+    toast('โหลดข้อมูลไม่สำเร็จ — ใช้ข้อมูลว่าง','error');
+  }
+
+  if(syncBtn)syncBtn.style.animation='';
+
+  applyTheme();
+  const inp=document.getElementById('pm-date-input');if(inp)inp.value=today();
+  const mth=document.getElementById('pm-month-filter');if(mth)mth.value=today().slice(0,7);
+  const histMth=document.getElementById('hist-month');if(histMth)histMth.value=today().slice(0,7);
+  populateHistoryFilter();
+  populateIssueMachineFilter();
+  renderDashboard();
+  showView('dashboard');
+
+  // hide loading, show app
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='flex';
+}
+
+window.addEventListener('DOMContentLoaded',initData);
+</script>
+</body>
+</html>
